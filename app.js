@@ -7,6 +7,10 @@ var uiController = (function () {
     addBtn: ".add__btn",
     incomeList: ".income__list",
     expenseList: ".expenses__list",
+    budgetLabel: ".budget__value",
+    incomeLabel: ".budget__income--value",
+    expenseLabel: ".budget__expenses--value",
+    percentageLabel: ".budget__expenses--percentage",
   };
 
   return {
@@ -34,11 +38,23 @@ var uiController = (function () {
       });
 
       fieldsArr[0].focus();
-      // for (var i = 0; i < fieldsArr.length; i++) {
-      //   fieldsArr[i].value = "";
-      // }
     },
 
+    showBudget: function (budget) {
+      document.querySelector(DOMstrings.budgetLabel).textContent =
+        budget.budget;
+      document.querySelector(DOMstrings.incomeLabel).textContent =
+        budget.totalInc;
+      document.querySelector(DOMstrings.expenseLabel).textContent =
+        budget.totalExp;
+      if (budget.percentage !== 0) {
+        document.querySelector(DOMstrings.percentageLabel).textContent =
+          budget.percentage + "%";
+      } else {
+        document.querySelector(DOMstrings.percentageLabel).textContent =
+          budget.percentage;
+      }
+    },
     addListItem: function (item, type) {
       // Орлого зарлагын элементийг агуулсан html-ийг бэлтгэнэ.
       var html, list;
@@ -77,6 +93,15 @@ var financeController = (function () {
     this.value = value;
   };
 
+  var calculateTotal = function (type) {
+    var sum = 0;
+    data.items[type].forEach(function (el) {
+      sum = sum + el.value;
+    });
+
+    data.totals[type] = sum;
+  };
+
   // private data
   var data = {
     items: {
@@ -88,9 +113,32 @@ var financeController = (function () {
       inc: 0,
       exp: 0,
     },
+    budget: 0,
+    percentage: 0,
   };
 
   return {
+    calculateBudget: function () {
+      // Нийт орлогын нийлбэрийг тооцоолно
+      calculateTotal("inc");
+      // Нийт зарлагын нийлбэрийг тооцоолно
+      calculateTotal("exp");
+
+      // Төсвийг шинээр тооцоолно
+      data.budget = data.totals.inc - data.totals.exp;
+
+      // Орлого зарлагын хувийг тооцоолно
+      data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+    },
+    getBudget: function () {
+      return {
+        budget: data.budget,
+        percentage: data.percentage,
+        totalInc: data.totals.inc,
+        totalExp: data.totals.exp,
+      };
+    },
+
     addItem: function (type, desc, val) {
       var item, id;
 
@@ -134,7 +182,13 @@ var appController = (function (uiController, financeController) {
       uiController.addListItem(item, input.type);
       uiController.clearFields();
       // 4. Төсвийг тооцоолно.
-      // 5. Эцсийн үлдэгдэл, тооцоог дэлгэцэнд гаргана.
+      financeController.calculateBudget();
+
+      // 5. Эцсийн үлдэгдэл.
+      var budget = financeController.getBudget();
+
+      // 6. Тооцоог дэлгэцэнд гаргана.
+      uiController.showBudget(budget);
     }
   };
 
@@ -154,7 +208,12 @@ var appController = (function (uiController, financeController) {
 
   return {
     init: function () {
-      console.log("Application started...");
+      uiController.showBudget({
+        budget: 0,
+        percentage: 0,
+        totalInc: 0,
+        totalExp: 0,
+      });
       setupEventListeners();
     },
   };
